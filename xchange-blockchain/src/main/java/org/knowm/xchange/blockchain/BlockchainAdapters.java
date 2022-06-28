@@ -5,12 +5,15 @@ import org.knowm.xchange.blockchain.dto.account.BlockchainDeposit;
 import org.knowm.xchange.blockchain.dto.account.BlockchainDeposits;
 import org.knowm.xchange.blockchain.dto.account.BlockchainSymbol;
 import org.knowm.xchange.blockchain.dto.account.BlockchainWithdrawal;
+import org.knowm.xchange.blockchain.dto.marketdata.BlockchainMarketDataOrder;
+import org.knowm.xchange.blockchain.dto.marketdata.BlockchainOrderBook;
 import org.knowm.xchange.blockchain.dto.trade.BlockchainOrder;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AddressWithTag;
 import org.knowm.xchange.dto.account.FundingRecord;
+import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Trades;
 import org.knowm.xchange.dto.meta.CurrencyMetaData;
 import org.knowm.xchange.dto.meta.CurrencyPairMetaData;
@@ -247,6 +250,25 @@ public class BlockchainAdapters {
        RateLimit[] rateLimits = {new RateLimit(30, 1, TimeUnit.SECONDS)};
 
        return new ExchangeMetaData(currencyPairs, currency, rateLimits, rateLimits, false);
+    }
+
+    public static OrderBook toOrderBook(BlockchainOrderBook blockchainOrderBook) {
+        List<LimitOrder> asks = blockchainOrderBook.getAsks().stream()
+                .map(limitOrder -> toLimitOrder(limitOrder, Order.OrderType.ASK, blockchainOrderBook.getSymbol()))
+                .collect(Collectors.toList());
+        List<LimitOrder> bids = blockchainOrderBook.getAsks().stream()
+                .map(limitOrder -> toLimitOrder(limitOrder, Order.OrderType.BID, blockchainOrderBook.getSymbol()))
+                .collect(Collectors.toList());
+
+        return new OrderBook(null, asks, bids);
+    }
+
+    public static LimitOrder toLimitOrder(BlockchainMarketDataOrder blockchainMarketDataOrder, Order.OrderType orderType , CurrencyPair currencyPair) {
+        return new LimitOrder.Builder(orderType, currencyPair)
+                .instrument(currencyPair)
+                .limitPrice(blockchainMarketDataOrder.getPrice())
+                .originalAmount(blockchainMarketDataOrder.getQuantity())
+                .build();
     }
 
     public static String getOrderType(Order.OrderType type){
